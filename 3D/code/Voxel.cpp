@@ -3,7 +3,7 @@
 Voxel::Voxel() { state = 0; }
 
 // state=0 by default
-Voxel::Voxel(double box, double voxel_l, int nx, int i, int j) {
+Voxel::Voxel(double box, double voxel_l, int nx) {
   box_l = box;
 
   dl = voxel_l;
@@ -12,15 +12,12 @@ Voxel::Voxel(double box, double voxel_l, int nx, int i, int j) {
   n = nx;
   num_total = n * n;
 
-  x = double(i) * dl;
-  y = double(j) * dl;
-
-  state = 1;
+  state = 0;
 }
 
 Voxel::~Voxel() {}
 
-bool Voxel::isContain(CSuperball *pa) {
+bool Voxel::isContain(CSuperball* pa) {
   CVector r = pa->center;
   double p = pa->p;
   double rs[3];
@@ -48,17 +45,45 @@ bool Voxel::isContain(CSuperball *pa) {
     return 0;
 }
 
-int initial_voxel(Voxel** s, double box_l, double length) {
-  int nx = int(box_l / length);
-  int ntotal = nx * nx;
-  double dx = box_l / double(nx);
+void FFT_if(CSuperball* p, double resolution, double L, CVector K_t, double& Re,
+            double& Im) {
+  CVector center_min, center_max;
+  CVector bound;
+  bound.Set(0.5 * p->bound_D, 0.5 * p->bound_D, 0.5 * p->bound_D);
+  center_min = p->center.operator-(bound);
+  center_max = p->center.operator+(bound);
 
-  for (int j = 0; j < nx; ++j) {
-    for (int i = 0; i < nx; ++i) {
-      int id = j * nx + i;
-      s[id] = new Voxel(box_l, dx, nx, i, j);
+  // Voxel initialization
+  int Nvoxel = int(pow(p->bound_D / resolution, 3.0) * 1.1);
+  Voxel** vox;
+  vox = new Voxel*[Nvoxel];
+
+  int nx = int(p->bound_D / resolution);
+  if (nx % 2 == 0) nx += 1;  // make sure that nx is an even integer
+  int ntotal = nx * nx * nx;
+  double dx = p->bound_D / double(nx);
+
+  int mid = (nx - 1) / 2;
+
+  Re = Im = 0.0;
+  // Discretizing the space around a given particle into pixels
+  for (int k = 0; k < nx; ++k) {
+    for (int j = 0; j < nx; ++j) {
+      for (int i = 0; i < nx; ++i) {
+        int id = k * nx * nx + j * nx + i;
+        vox[id] = new Voxel(p->bound_D, dx, nx);
+
+        vox[id]->r.Set(double(i - mid) * dx, double(j - mid) * dx,
+                       double(k - mid) * dx);
+        vox[id]->center = vox[id]->r + p->center;
+
+        if (vox[id]->isContain(p)) {
+          vox[id]->state = 1;
+          double temp = -K_t.Dot(vox[id]->r);
+          Re += cos(temp);
+          Im += sin(temp);
+        }
+      }
     }
   }
-  cout << "Voxel initialization=" << ntotal << endl;
-  return ntotal;
 }

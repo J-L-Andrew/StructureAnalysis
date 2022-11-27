@@ -1,7 +1,6 @@
 {
   "files.associations": {
     "*.py": "python",
-    "*.tcc": "cpp",
-    "ratio": "cpp"
+    "string_view": "cpp"
   }
 }
