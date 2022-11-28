@@ -1,9 +1,9 @@
 #ifndef _VOXEL_H
 #define _VOXEL_H
 
-#include "/mnt/Edisk/andrew/JammedPacking/3D/code/Matrix.h"
-#include "/mnt/Edisk/andrew/JammedPacking/3D/code/Superball.h"
-#include "/mnt/Edisk/andrew/JammedPacking/3D/code/Vector.h"
+#include "Matrix.h"
+#include "Superball.h"
+#include "Vector.h"
 
 class Voxel {
  public:
@@ -12,11 +12,11 @@ class Voxel {
   ~Voxel();
 
   CVector center;  // center coordinates
-  CVector r; // for indicator function
+  CVector r;       // for indicator function
 
   double box_l;
   double dl;
-  double area;
+  double vol;
 
   int n;  // number of voxel in each side
   int num_total;
@@ -43,22 +43,8 @@ inline double SuperballFunction(double p, double r[3], CVector X) {
          exp((double)2.0 * p * log(fabs(X[2]) / r[2]));
 }
 
-void SuperballFunctionD(double p, double r[3], CVector X, CVector &xn) {
-  xn[0] = 2.0 * p * exp((2.0 * p - 1.0) * log(fabs(X[0]) / r[0])) *
-          (double)sgn(X[0]) / r[0];
-  xn[1] = 2.0 * p * exp((2.0 * p - 1.0) * log(fabs(X[1]) / r[1])) *
-          (double)sgn(X[1]) / r[1];
-  xn[2] = 2.0 * p * exp((2.0 * p - 1.0) * log(fabs(X[2]) / r[2])) *
-          (double)sgn(X[2]) / r[2];
-}
-
-// Discretizing the space around a given particle into pixels
 // Calculate the Fourier transform of the indicator function for particle j
-void FFT_if(CSuperball* p, double resolution, CVector k, double &Re, double &Im);
-
-
-int initial_voxel(Voxel** s, double box_l, double length);
-
-
+void FFT_if(CSuperball* p, double resolution, CVector K_t, double* re,
+            double* im);
 
 #endif

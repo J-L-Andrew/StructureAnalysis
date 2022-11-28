@@ -7,3 +7,8 @@
 #include "fstream"
 #include "iomanip"
 #include "string"
+
+using namespace std;
+
+void readfile(string filename);
+void spectral_density();

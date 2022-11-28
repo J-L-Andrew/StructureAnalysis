@@ -7,10 +7,10 @@ Voxel::Voxel(double box, double voxel_l, int nx) {
   box_l = box;
 
   dl = voxel_l;
-  area = voxel_l * voxel_l;
+  vol = pow(voxel_l, 3.0);
 
   n = nx;
-  num_total = n * n;
+  num_total = n * n * n;
 
   state = 0;
 }
@@ -37,7 +37,7 @@ bool Voxel::isContain(CSuperball* pa) {
   CVector r_l;
   MatrixMult(AT, rt, r_l);
   double xa = SuperballFunction(p, rs, r_l);
-  double ta = exp((double)(1.0 / p) * log(xa));
+  double ta = exp((double)(1.0 / p) * log(xa)) - 1.0;
 
   if (ta < 0.0)
     return 1;
@@ -45,8 +45,9 @@ bool Voxel::isContain(CSuperball* pa) {
     return 0;
 }
 
-void FFT_if(CSuperball* p, double resolution, double L, CVector K_t, double& Re,
-            double& Im) {
+void FFT_if(CSuperball* p, double resolution, CVector K_t, double* re,
+            double* im) {
+  double Re, Im;
   CVector center_min, center_max;
   CVector bound;
   bound.Set(0.5 * p->bound_D, 0.5 * p->bound_D, 0.5 * p->bound_D);
@@ -54,16 +55,14 @@ void FFT_if(CSuperball* p, double resolution, double L, CVector K_t, double& Re,
   center_max = p->center.operator+(bound);
 
   // Voxel initialization
-  int Nvoxel = int(pow(p->bound_D / resolution, 3.0) * 1.1);
-  Voxel** vox;
-  vox = new Voxel*[Nvoxel];
-
   int nx = int(p->bound_D / resolution);
   if (nx % 2 == 0) nx += 1;  // make sure that nx is an even integer
   int ntotal = nx * nx * nx;
-  double dx = p->bound_D / double(nx);
+  Voxel** vox;
+  vox = new Voxel*[ntotal];
 
   int mid = (nx - 1) / 2;
+  double dx = p->bound_D / double(nx);
 
   Re = Im = 0.0;
   // Discretizing the space around a given particle into pixels
@@ -80,10 +79,16 @@ void FFT_if(CSuperball* p, double resolution, double L, CVector K_t, double& Re,
         if (vox[id]->isContain(p)) {
           vox[id]->state = 1;
           double temp = -K_t.Dot(vox[id]->r);
-          Re += cos(temp);
-          Im += sin(temp);
+          Re += cos(temp) * pow(dx, 3.0);
+          Im += sin(temp) * pow(dx, 3.0);
         }
       }
     }
   }
+
+  for (int i = 0; i < ntotal; ++i) delete vox[i];
+  delete[] vox;
+
+  *re = Re;
+  *im = Im;
 }
