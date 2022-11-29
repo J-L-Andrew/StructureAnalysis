@@ -11,4 +11,7 @@
 using namespace std;
 
 void readfile(string filename);
+
 void spectral_density();
+
+
