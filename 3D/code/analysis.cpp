@@ -49,6 +49,43 @@ void readfile(string filename) {
   PD = sumvol / L / L / L;
 }
 
+void Structure_factor(double *Sk) {
+  int nk = int(L / sqrt(3.0));  // a rough estimate
+  double thickness = 2.0 * PI / L;
+
+  for (int i = 0; i < nk; ++i) SK[i] = 0.0;
+
+  double Re, Im;
+
+  for (int i = -nk; i < nk; ++i) {
+    for (int j = -nk; j < nk; ++j) {
+      for (int k = -nk; K < nk; ++k) {
+        CVector K;
+        K.Set(thickness * i, thickness * j, thickness * k);
+
+        Re = Im = 0.0;
+        for (int n = 0; n < NUM_PARTICLE; ++n) {
+          double temp = K.Dot(particles[n]->center);
+          Re += cos(temp);
+          Im += sin(temp);
+        }
+
+        double sk = (Re * Re + Im * Im) / NUM_PARTICLE;
+
+        int id = int(K.Length() / thickness);
+        SK[id] += sk;
+      }
+    }
+  }
+
+  for (j = 0; j < N_sam; j++) {
+    if (Num[j] == 0) {
+      continue;
+    }
+    Sk[j] /= Num[j];
+  }
+}
+
 void spectral_density() {
   int nk = int(L / sqrt(3.0));  // a rough estimate
   double thickness = 2.0 * PI / L;
