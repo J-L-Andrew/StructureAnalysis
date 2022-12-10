@@ -118,9 +118,9 @@ void Structure_factor(int species, bool global = true) {
           sf = (Re * Re + Im * Im) / NpEach[species];
         }
 
-        int id = int(K.Length() / thickness);
-        Sf[id] += sf;
-        num[id] += 1;
+        int index = int(K.Length() / thickness);
+        Sf[index] += sf;
+        num[index] += 1;
       }
     }
   }
@@ -175,9 +175,9 @@ void spectral_density(int species, bool global = true) {
         }
 
         double sd = (Re * Re + Im * Im) / pow(L, 3.0);
-        int id = int(K.Length() / thickness);
+        int index = int(K.Length() / thickness);
 
-        density[id] += sd;
+        density[index] += sd;
       }
     }
   }
@@ -416,4 +416,98 @@ void PeriodicCheck(CVector &point) {
       point[i] += L;
     }
   }
+}
+
+void POV_superball(int num) {
+  double c1[3] = {0.484, 0.984, 0};
+  double c2[3] = {0, 0.75, 1.0};
+  double c3[3] = {0.574, 0.4375, 0.855};
+  // p < 1.0 red p>1.0 green
+  double c[3];
+  double len = 1.5 * L;
+
+  double cell[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) cell[i][j] = 0;
+  cell[0][0] = cell[1][1] = cell[2][2] = L;
+
+  CSuperball *ps;
+  char name[40];
+  sprintf(name, "polysuperball%d.pov", num);
+  ofstream pov(name);
+  pov << "#include \"colors.inc\"" << endl;
+  pov << "#include \"textures.inc\"" << endl;
+  pov << "camera{ location <" << len << "," << len << "," << len
+      << "> look_at <0,0,0> }" << endl;
+  pov << "background {rgb 1}" << endl;
+  pov << "light_source{ <60,60,10> color rgb <1,1,1> }" << endl;
+  pov << "light_source{ <10,60,60> color rgb <1,1,1> }" << endl;
+
+  double br = 0.05;
+  CVector p_sc;
+  CVector cs_, se_, cs, se;
+  int bound_flag[3];
+  cs.SetZero();
+  for (int i = 0; i < 3; i++) {
+    bound_flag[0] = bound_flag[1] = bound_flag[2] = 0;
+    bound_flag[i] = 1;
+    se_.Set(bound_flag[0], bound_flag[1], bound_flag[2]);
+    MatrixMult(cell, se_, se);
+    pov << "cylinder { <0,0,0> , <" << se[0] << "," << se[1] << "," << se[2]
+        << "> ," << br << " texture{ pigment{\t";
+    pov << "color rgb <0.625,0.125,0.9375> } finish{ phong 1.0 reflection 0.0 "
+           "} } }"
+        << endl;  // purple
+  }
+  cs_.Set(1, 1, 1);
+  MatrixMult(cell, cs_, cs);
+  for (int i = 0; i < 3; i++) {
+    bound_flag[0] = bound_flag[1] = bound_flag[2] = 1;
+    bound_flag[i] = 0;
+    se_.Set(bound_flag[0], bound_flag[1], bound_flag[2]);
+    MatrixMult(cell, se_, se);
+    pov << "cylinder { <" << cs[0] << "," << cs[1] << "," << cs[2] << "> , <"
+        << se[0] << "," << se[1] << "," << se[2] << "> ," << br
+        << " texture{ pigment{\t";
+    pov << "color rgb <0.625,0.125,0.9375> } finish{ phong 1.0 reflection 0.0 "
+           "} } }"
+        << endl;  // purple
+  }
+  for (int i = 0; i < 3; i++) {
+    bound_flag[0] = bound_flag[1] = bound_flag[2] = 0;
+    bound_flag[i] = 1;
+    cs_.Set(bound_flag[0], bound_flag[1], bound_flag[2]);
+    MatrixMult(cell, cs_, cs);
+    for (int j = 0; j < 3; j++) {
+      if (j == i) continue;
+      bound_flag[0] = bound_flag[1] = bound_flag[2] = 1;
+      bound_flag[j] = 0;
+      se_.Set(bound_flag[0], bound_flag[1], bound_flag[2]);
+      MatrixMult(cell, se_, se);
+      pov << "cylinder { <" << cs[0] << "," << cs[1] << "," << cs[2] << "> , <"
+          << se[0] << "," << se[1] << "," << se[2] << "> ," << br
+          << " texture{ pigment{\t";
+      pov << "color rgb <0.625,0.125,0.9375> } finish{ phong 1.0 reflection "
+             "0.0 } } }"
+          << endl;  // purple
+    }
+  }
+  for (int i = 0; i < NUM_PARTICLE; i++) {
+    ps = particles[i];
+
+    c[0] = c1[0];
+    c[1] = c1[1];
+    c[2] = c1[2];
+    // ps->r_scale[0] = ps->r_scale[1] = ps->r_scale[2] = 0.5;
+    pov << "object { superellipsoid { <" << 1.0 / ps->p << "," << 1.0 / ps->p
+        << "> scale <" << ps->r_scale[0] << "," << ps->r_scale[1] << ","
+        << ps->r_scale[2] << "> texture{ pigment{\t";
+    pov << "color rgb <" << c[0] << "," << c[1] << "," << c[2]
+        << "> } finish{ phong 1.0 reflection 0.0 } } } matrix<";
+    for (int j = 0; j < 3; j++)
+      pov << ps->e[j][0] << "," << ps->e[j][1] << "," << ps->e[j][2] << ",";
+    pov << ps->center[0] << "," << ps->center[1] << "," << ps->center[2]
+        << "> }" << endl;
+  }
+  pov.close();
 }
