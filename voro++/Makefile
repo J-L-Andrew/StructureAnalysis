@@ -1,39 +1,72 @@
 # Voro++ makefile
 #
-# Author : Chris H. Rycroft (Harvard University / LBL)
+# Author : Chris H. Rycroft (LBL / UC Berkeley)
 # Email  : chr@alum.mit.edu
 # Date   : August 30th 2011
 
-# Load the common configuration file
+# Tell make that these are phony targets
+.PHONY: all help clean install uninstall
+
 include config.mk
 
-# List of the common source files
-objs=cell.o common.o container.o unitcell.o v_compute.o c_loops.o \
-     v_base.o wall.o pre_container.o container_prd.o
-src=$(patsubst %.o,%.cc,$(objs))
+# Build all of the executable files
+all:
+	$(MAKE) -C src
+	$(MAKE) -C examples
 
-# Makefile rules
-all: libvoro++.a voro++
+# Build the help files (with Doxygen)
+help:
+	$(MAKE) -C src help
 
-depend:
-	$(CXX) -MM $(src) >Makefile.dep
-
-include Makefile.dep
-
-libvoro++.a: $(objs)
-	rm -f libvoro++.a
-	ar rs libvoro++.a $^
-
-voro++: libvoro++.a cmd_line.cc
-	$(CXX) $(CFLAGS) -L. -o voro++ cmd_line.cc -lvoro++
-
-%.o: %.cc
-	$(CXX) $(CFLAGS) -c $<
-
-help: Doxyfile $(SOURCE)
-	doxygen Doxyfile
-
+# Clean up the executable files
 clean:
-	rm -f $(objs) voro++ libvoro++.a
+	$(MAKE) -C src clean
+	$(MAKE) -C examples clean
 
-.PHONY: all help execs depend
+# Install the executable, man page, and shared library
+install:
+	$(MAKE) -C src
+	$(INSTALL) -d $(IFLAGS_EXEC) $(PREFIX)/bin
+	$(INSTALL) -d $(IFLAGS_EXEC) $(PREFIX)/lib
+	$(INSTALL) -d $(IFLAGS_EXEC) $(PREFIX)/man
+	$(INSTALL) -d $(IFLAGS_EXEC) $(PREFIX)/man/man1
+	$(INSTALL) -d $(IFLAGS_EXEC) $(PREFIX)/include
+	$(INSTALL) -d $(IFLAGS_EXEC) $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS_EXEC) src/voro++ $(PREFIX)/bin
+	$(INSTALL) $(IFLAGS) man/voro++.1 $(PREFIX)/man/man1
+	$(INSTALL) $(IFLAGS) src/libvoro++.a $(PREFIX)/lib
+	$(INSTALL) $(IFLAGS) src/voro++.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/c_loops.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/cell.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/common.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/config.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/container.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/container_prd.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/rad_option.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/pre_container.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/unitcell.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/v_base.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/v_compute.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/wall.hh $(PREFIX)/include/voro++
+	$(INSTALL) $(IFLAGS) src/worklist.hh $(PREFIX)/include/voro++
+
+# Uninstall the executable, man page, and shared library
+uninstall:
+	rm -f $(PREFIX)/bin/voro++
+	rm -f $(PREFIX)/man/man1/voro++.1
+	rm -f $(PREFIX)/lib/libvoro++.a
+	rm -f $(PREFIX)/include/voro++/voro++.hh
+	rm -f $(PREFIX)/include/voro++/c_loops.hh
+	rm -f $(PREFIX)/include/voro++/cell.hh
+	rm -f $(PREFIX)/include/voro++/common.hh
+	rm -f $(PREFIX)/include/voro++/config.hh
+	rm -f $(PREFIX)/include/voro++/container.hh
+	rm -f $(PREFIX)/include/voro++/container_prd.hh
+	rm -f $(PREFIX)/include/voro++/pre_container.hh
+	rm -f $(PREFIX)/include/voro++/rad_option.hh
+	rm -f $(PREFIX)/include/voro++/unitcell.hh
+	rm -f $(PREFIX)/include/voro++/v_base.hh
+	rm -f $(PREFIX)/include/voro++/v_compute.hh
+	rm -f $(PREFIX)/include/voro++/wall.hh
+	rm -f $(PREFIX)/include/voro++/worklist.hh
+	rmdir $(PREFIX)/include/voro++

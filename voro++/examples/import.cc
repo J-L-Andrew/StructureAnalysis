@@ -4,7 +4,7 @@
 // Email    : chr@alum.mit.edu
 // Date     : August 30th 2011
 
-#include "voro++.hh"
+#include "../src/voro++.hh"
 #include <fstream>
 #include <iostream>
 using namespace std;
@@ -22,7 +22,7 @@ int main()
 	int ntemp, itemp;
 	double Lb;
 	char input_file[100];
-	ifstream input("boundary.txt");
+	ifstream input("../file/boundary.txt");
 	istart = 7;cout << "please input istart:\t"; cin >> istart; 
 	input >> ntemp;	
 	for (i =0; i < ntemp; i++)
