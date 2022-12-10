@@ -68,8 +68,7 @@ void askforspace() {
   for (int i = 0; i < Nkind; ++i) Para[i] = new double[4];
 }
 
-void releasespace()  // 释放所有空间
-{
+void releasespace() {
   delete[] NpEach;
   for (int i = 0; i < Nkind; ++i) delete Para[i];
   delete[] Para;
@@ -78,44 +77,66 @@ void releasespace()  // 释放所有空间
 // ----------------
 // Hyperuniform Analysis
 // ----------------
-void Structure_factor(double *Sk) {
+void Structure_factor(int species, bool global = true) {
   int nk = int(L / sqrt(3.0));  // a rough estimate
   double thickness = 2.0 * PI / L;
 
-  for (int i = 0; i < nk; ++i) SK[i] = 0.0;
+  double Sf[nk];
+  int num[nk];
+
+  for (int i = 0; i < nk; ++i) {
+    Sf[i] = 0.0;
+    num[i] = 0;
+  }
 
   double Re, Im;
 
   for (int i = -nk; i < nk; ++i) {
     for (int j = -nk; j < nk; ++j) {
-      for (int k = -nk; K < nk; ++k) {
+      for (int k = -nk; k < nk; ++k) {
         CVector K;
         K.Set(thickness * i, thickness * j, thickness * k);
 
         Re = Im = 0.0;
-        for (int n = 0; n < NUM_PARTICLE; ++n) {
-          double temp = K.Dot(particles[n]->center);
-          Re += cos(temp);
-          Im += sin(temp);
+        double sf;
+        if (global) {
+          for (int n = 0; n < NUM_PARTICLE; ++n) {
+            double temp = K.Dot(particles[n]->center);
+            Re += cos(temp);
+            Im += sin(temp);
+          }
+          sf = (Re * Re + Im * Im) / NUM_PARTICLE;
+        } else {
+          int id = 0;
+          for (int i = 0; i < species - 1; ++i) id += NpEach[i];
+
+          for (int n = 0; n < NpEach[species]; ++n) {
+            double temp = K.Dot(particles[id + n]->center);
+            Re += cos(temp);
+            Im += sin(temp);
+          }
+          sf = (Re * Re + Im * Im) / NpEach[species];
         }
 
-        double sk = (Re * Re + Im * Im) / NUM_PARTICLE;
-
         int id = int(K.Length() / thickness);
-        SK[id] += sk;
+        Sf[id] += sf;
+        num[id] += 1;
       }
     }
   }
 
-  for (j = 0; j < N_sam; j++) {
-    if (Num[j] == 0) {
-      continue;
-    }
-    Sk[j] /= Num[j];
+  ofstream output("SF.txt");
+  output << "species\t" << species << endl;
+  output << global << endl;
+  for (int i = 0; i < nk; ++i) {
+    if (num[i] == 0) continue;
+    Sf[i] /= num[i];
+    output << (i + 0.5) * thickness << "\t" << Sf[i] << endl;
   }
+  output.close();
 }
 
-void spectral_density() {
+void spectral_density(int species, bool global = true) {
   int nk = int(L / sqrt(3.0));  // a rough estimate
   double thickness = 2.0 * PI / L;
   double density[nk];
@@ -131,13 +152,26 @@ void spectral_density() {
         K.Set(thickness * i, thickness * j, thickness * k);
 
         Re = Im = 0.0;
-        for (int n = 0; n < NUM_PARTICLE; ++n) {
-          double temp = -K.Dot(particles[n]->center);
-          FFT_if(particles[n], 0.01, K, &Re_m, &Im_m);
-          cout << n << endl;
+        if (global) {
+          for (int n = 0; n < NUM_PARTICLE; ++n) {
+            double temp = -K.Dot(particles[n]->center);
+            FFT_if(particles[n], 0.01, K, &Re_m, &Im_m);
 
-          Re += cos(temp) * Re_m - sin(temp) * Im_m;
-          Im += cos(temp) * Im_m + sin(temp) * Re_m;
+            Re += cos(temp) * Re_m - sin(temp) * Im_m;
+            Im += cos(temp) * Im_m + sin(temp) * Re_m;
+          }
+        } else {
+          int id = 0;
+          for (int i = 0; i < species - 1; ++i) id += NpEach[i];
+
+          for (int n = 0; n < NpEach[species]; ++n) {
+            double temp = -K.Dot(particles[id + n]->center);
+            FFT_if(particles[id + n], 0.01, K, &Re_m, &Im_m);
+            cout << n << endl;
+
+            Re += cos(temp) * Re_m - sin(temp) * Im_m;
+            Im += cos(temp) * Im_m + sin(temp) * Re_m;
+          }
         }
 
         double sd = (Re * Re + Im * Im) / pow(L, 3.0);
@@ -147,7 +181,10 @@ void spectral_density() {
       }
     }
   }
+
   ofstream output("SD.txt");
+  output << "species\t" << species << endl;
+  output << global << endl;
   for (int i = 0; i < nk; ++i) {
     double Vshell =
         4.0 / 3.0 * PI * (3 * i * i + 3 * i + 1) * pow(thickness, 3.0);
@@ -162,7 +199,6 @@ void spectral_density() {
 // ----------------
 // Voronoi Analysis
 // ----------------
-
 // Discretize surface for a given species under local coordinates
 void getsurpoint(double para[], int num, CVector *SurfPot) {
   // Discretize a superellipsoidal particle surface along the longitude
@@ -368,6 +404,9 @@ void VoroVolume(int num, int replica) {
   delete[] sigma_pd;
 }
 
+// ----------------
+// Other utils
+// ----------------
 void PeriodicCheck(CVector &point) {
   for (int i = 0; i < 3; ++i) {
     while (point[i] >= L) {
