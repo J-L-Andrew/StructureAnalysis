@@ -12,6 +12,11 @@ using namespace std;
 
 void readfile(string filename);
 
+void askforspace();
+void releasespace();
+
 void spectral_density();
+
+void PeriodicCheck(CVector &point);
 
 
