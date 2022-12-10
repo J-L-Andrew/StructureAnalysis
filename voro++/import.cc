@@ -33,9 +33,9 @@ int main()
 		{			
 			x_max = Lb; y_max = Lb; z_max = Lb;
 			container con(x_min, x_max, y_min, y_max, z_min, z_max, n_x, n_y, n_z, true, true, true, 8);
-			sprintf_s(input_file, "surfpoint %d.txt", itemp);
+			sprintf(input_file, "surfpoint %d.txt", itemp);
 			con.import(input_file);
-			sprintf_s(input_file, "vorovol %d.txt", itemp);
+			sprintf(input_file, "vorovol %d.txt", itemp);
 			con.print_custom("%i\t%x\t%y\t%z\t%v", input_file);
 		}
 	}	
