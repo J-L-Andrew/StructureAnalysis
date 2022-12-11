@@ -15,17 +15,25 @@ vector<CSuperball *> particles;
 ifstream myfile;
 
 int main() {
-  string file = "config0.pac";
+  string file = "config1.pac";
   readfile(file);
 
-  spectral_density();
+  // POV_superball(1);
+
+  // OutputBoundary("../vorofile/boundary.txt", 1);
+  // OutputVoroPoint(20, 1);
+
+  VoroVolume(20, 1);
+
+  // spectral_density();
+
+  releasespace();
 }
 
 void readfile(string filename) {
   myfile.open(filename);
 
-  if (!myfile.is_open())  // unable to open file
-  {
+  if (!myfile.is_open()) {
     cout << "Unable to open myfile" << endl;
     exit(1);
   }
@@ -223,7 +231,7 @@ void getsurpoint(double para[], int num, CVector *SurfPot) {
   // v=cita (0, PI)
   // start from 1 to avoid replication
   for (int i = 0; i < num - 1; ++i) {
-    double v = dv * double(i);
+    double v = dv * double(i + 1);
     sin_cita[i] = sin(v);
     cos_cita[i] = cos(v);
   }
@@ -256,7 +264,8 @@ void getsurpoint(double para[], int num, CVector *SurfPot) {
 // num: Precision
 void OutputVoroPoint(int num, int replica) {
   char cha[100];
-  sprintf(cha, "Surfpoint%d.txt", replica);
+
+  sprintf(cha, "../vorofile/Surfpoint%d.txt", replica);
   ofstream scr(cha);
   scr << fixed << setprecision(10);
 
@@ -294,16 +303,25 @@ void OutputVoroPoint(int num, int replica) {
   scr.close();
 }
 
+void OutputBoundary(string filename, int replica) {
+  ofstream output;
+  output.open(filename, ios::app);
+
+  output << replica << "\t" << L << endl;
+
+  output.close();
+}
+
 void VoroVolume(int num, int replica) {
   char cha[100];
-  sprintf(cha, "vorovol%d.txt", replica);
+  sprintf(cha, "../vorofile/V_voro%d.txt", replica);
   ifstream voro(cha);
   if (!voro.good()) {
     cout << "Unable to open file!" << endl;
     exit(1);
   }
 
-  sprintf(cha, "vororesults%d.txt", replica);
+  sprintf(cha, "../vorofile/V_analysis%d.txt", replica);
   ofstream scr(cha);
   scr << fixed << setprecision(15);
 
@@ -334,15 +352,15 @@ void VoroVolume(int num, int replica) {
     voro >> n >> x >> y >> z >> v;
   }
 
-  scr << "i\tkind\tVorov\tPDlocal" << endl;
+  scr << "index\tkind\tVorov\tPDlocal" << endl;
   id = -1;
   for (int i = 0; i < Nkind; ++i) {
     for (int j = 0; j < NpEach[i]; ++j) {
+      id++;
       Vlocal[id] /= particles[id]->vol;
       PDlocal[id] = 1.0 / Vlocal[id];
       scr << id << "\t" << i << "\t" << Vlocal[id] << "\t" << PDlocal[id]
           << endl;
-      id++;
     }
   }
 
@@ -419,11 +437,10 @@ void PeriodicCheck(CVector &point) {
 }
 
 void POV_superball(int num) {
-  double c1[3] = {0.484, 0.984, 0};
-  double c2[3] = {0, 0.75, 1.0};
-  double c3[3] = {0.574, 0.4375, 0.855};
+  // green, blue
+  double color[3][3] = {
+      {0.484, 0.984, 0}, {0, 0.75, 1.0}, {0.574, 0.4375, 0.855}};
   // p < 1.0 red p>1.0 green
-  double c[3];
   double len = 1.5 * L;
 
   double cell[3][3];
@@ -492,22 +509,28 @@ void POV_superball(int num) {
           << endl;  // purple
     }
   }
-  for (int i = 0; i < NUM_PARTICLE; i++) {
-    ps = particles[i];
 
-    c[0] = c1[0];
-    c[1] = c1[1];
-    c[2] = c1[2];
-    // ps->r_scale[0] = ps->r_scale[1] = ps->r_scale[2] = 0.5;
-    pov << "object { superellipsoid { <" << 1.0 / ps->p << "," << 1.0 / ps->p
-        << "> scale <" << ps->r_scale[0] << "," << ps->r_scale[1] << ","
-        << ps->r_scale[2] << "> texture{ pigment{\t";
-    pov << "color rgb <" << c[0] << "," << c[1] << "," << c[2]
-        << "> } finish{ phong 1.0 reflection 0.0 } } } matrix<";
-    for (int j = 0; j < 3; j++)
-      pov << ps->e[j][0] << "," << ps->e[j][1] << "," << ps->e[j][2] << ",";
-    pov << ps->center[0] << "," << ps->center[1] << "," << ps->center[2]
-        << "> }" << endl;
+  int id = -1;
+  for (int m = 0; m < Nkind; ++m) {
+    double c[3];
+    c[0] = color[m][0];
+    c[1] = color[m][1];
+    c[2] = color[m][2];
+
+    for (int i = 0; i < NpEach[m]; i++) {
+      id++;
+      ps = particles[id];
+
+      pov << "object { superellipsoid { <" << 1.0 / ps->p << "," << 1.0 / ps->p
+          << "> scale <" << ps->r_scale[0] << "," << ps->r_scale[1] << ","
+          << ps->r_scale[2] << "> texture{ pigment{\t";
+      pov << "color rgb <" << c[0] << "," << c[1] << "," << c[2]
+          << "> } finish{ phong 1.0 reflection 0.0 } } } matrix<";
+      for (int j = 0; j < 3; j++)
+        pov << ps->e[j][0] << "," << ps->e[j][1] << "," << ps->e[j][2] << ",";
+      pov << ps->center[0] << "," << ps->center[1] << "," << ps->center[2]
+          << "> }" << endl;
+    }
   }
   pov.close();
 }
